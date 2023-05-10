@@ -44,6 +44,17 @@ def test_reconcile_attributes(s1: pd.Series, s2: pd.Series, rec: Reconcile):
         .rename_axis(index="left_index")
         .convert_dtypes()
     )
+    reconstructed_s2 = pd.concat(
+        [
+            pd.Series(
+                data=rec.commons.drop_duplicates(subset="right_index")["value"].values,
+                index=rec.commons.drop_duplicates(subset="right_index")[
+                    "right_index"
+                ].values,
+            ),
+            rec.right_uniques,
+        ]
+    ).convert_dtypes()
 
     # Assertions
     pd.testing.assert_series_equal(s1, rec.left)
@@ -55,3 +66,7 @@ def test_reconcile_attributes(s1: pd.Series, s2: pd.Series, rec: Reconcile):
 
     pd.testing.assert_frame_equal(rec.commons, commons, check_index_type=False)
     pd.testing.assert_frame_equal(rec.data_map, data_map, check_index_type=False)
+
+    pd.testing.assert_series_equal(
+        reconstructed_s2, s2, check_index_type=False, check_names=False
+    )
