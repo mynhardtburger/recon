@@ -1,4 +1,5 @@
 from enum import StrEnum
+from textwrap import dedent
 
 import pandas as pd
 
@@ -122,3 +123,25 @@ class Reconcile:
             self.relationship = Relationship.MANY_TO_ONE
         else:
             self.relationship = Relationship.MANY_TO_MANY
+
+    def info(self):
+        left_stats = (
+            f"{self.commons.index.nunique():,d} common + "
+            f"{self.left_uniques.size:,d} unique = "
+            f"{self.left.size:,d} records"
+        )
+        right_stats = (
+            f"{self.commons['right_index'].nunique():,d} common + "
+            f"{self.left_uniques.size:,d} unique = "
+            f"{self.right.size:,d} records"
+        )
+        report = dedent(
+            f"""
+        Reconciliation summary
+
+        Left ({self.left.name}): {left_stats}
+        Right ({self.right.name}): {right_stats}
+        Relationship: {self.relationship}
+        """
+        )
+        print(report)
