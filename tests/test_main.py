@@ -33,6 +33,12 @@ def test_reconcile_attributes(s1: pd.Series, s2: pd.Series, rec: Reconcile):
         .rename_axis(index="left_index")
         .convert_dtypes()
     )
+    left_commons = pd.Series(
+        index=[0, 1, 2, 4], data=[1, 1, 2, "text"], name="left_commons"
+    ).convert_dtypes()
+    right_commons = pd.Series(
+        index=[0, 1, 2, 3], data=[1, 2, 2, "text"], name="right_commons"
+    ).convert_dtypes()
     data_map = (
         pd.DataFrame(
             index=[0, 1, 2, 2, 3, 4, pd.NA],
@@ -63,6 +69,9 @@ def test_reconcile_attributes(s1: pd.Series, s2: pd.Series, rec: Reconcile):
     assert rec.relationship == Relationship.MANY_TO_MANY
     pd.testing.assert_series_equal(rec.left_uniques, left_uniques)
     pd.testing.assert_series_equal(rec.right_uniques, right_uniques)
+
+    pd.testing.assert_series_equal(rec.left_commons, left_commons)
+    pd.testing.assert_series_equal(rec.right_commons, right_commons)
 
     pd.testing.assert_frame_equal(rec.commons, commons, check_index_type=False)
     pd.testing.assert_frame_equal(rec.data_map, data_map, check_index_type=False)

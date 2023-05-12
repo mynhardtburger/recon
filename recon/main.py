@@ -23,6 +23,8 @@ class Reconcile:
         ["right_index"] = Mapped `right.index`.
         """
         self.commons = pd.DataFrame()
+        self.left_commons = pd.Series()
+        self.right_commons = pd.Series()
         self.left_uniques = pd.Series()
         self.right_uniques = pd.Series()
         self.relationship: Relationship
@@ -72,6 +74,14 @@ class Reconcile:
         `right_map`.
         Item order is ignored. Duplicates are preserved. Indexes are preserved.
         """
+
+        def to_series_right(x: pd.DataFrame):
+            return pd.Series(
+                data=x["value"].convert_dtypes().values,
+                index=x["right_index"].astype("int64"),
+                name="right_commons",
+            ).rename_axis(index=None)
+
         self._map_data()
 
         if self.commons.empty or refresh:
@@ -81,6 +91,18 @@ class Reconcile:
                 ]
                 .rename_axis(index="left_index")
                 .convert_dtypes()
+            )
+            self.left_commons = (
+                self.commons["value"]
+                .iloc[self.commons.index.drop_duplicates()]
+                .rename("left_commons")
+                .rename_axis(index=None)
+                .convert_dtypes()
+            )
+            self.left_commons.index = self.left_commons.index.astype("int64")
+
+            self.right_commons = to_series_right(
+                self.commons.drop_duplicates("right_index")
             )
 
     @staticmethod
