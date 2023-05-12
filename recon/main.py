@@ -1,7 +1,21 @@
 from enum import StrEnum
+from os import PathLike
 from textwrap import dedent
+from typing import Literal, Union
 
 import pandas as pd
+
+FilePath = Union[str, "PathLike[str]"]
+
+RECON_COMPONENTS = Literal[
+    "left_commons",
+    "right_commons",
+    "left_uniques",
+    "right_uniques",
+    "commons",
+    "data_map",
+    "all",
+]
 
 
 class Relationship(StrEnum):
@@ -167,3 +181,27 @@ class Reconcile:
         """
         )
         print(report)
+
+    def to_xlsx(
+        self, path: FilePath, recon_components: list[RECON_COMPONENTS], **kwargs
+    ):
+        df_dispatch: dict[str, Union[pd.Series, pd.DataFrame]] = {
+            "left_commons": self.left_commons,
+            "right_commons": self.right_commons,
+            "left_uniques": self.left_uniques,
+            "right_uniques": self.right_uniques,
+            "commons": self.commons,
+            "data_map": self.data_map,
+            "left": self.left,
+            "right": self.right,
+        }
+
+        write_list = (
+            df_dispatch.keys() if "all" in recon_components else recon_components
+        )
+
+        with pd.ExcelWriter(path, **kwargs) as writer:
+            for component in write_list:
+                df_dispatch[component].to_excel(
+                    writer, sheet_name=component, index_label="index"
+                )
