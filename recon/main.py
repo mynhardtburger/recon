@@ -1,4 +1,6 @@
+import sys
 from enum import StrEnum
+from functools import cached_property
 from os import PathLike
 from textwrap import dedent
 from typing import Literal, Union
@@ -6,14 +8,20 @@ from typing import Literal, Union
 import pandas as pd
 
 FilePath = Union[str, "PathLike[str]"]
+Suffixes = Union[
+    list[Union[str, None]], tuple[str, None], tuple[None, str], tuple[str, str]
+]
 
 RECON_COMPONENTS = Literal[
-    "left_commons",
-    "right_commons",
-    "left_uniques",
-    "right_uniques",
-    "commons",
+    "left_both",
+    "right_both",
+    "left_only",
+    "right_only",
+    "left_duplicate",
+    "right_duplicate",
+    "both",
     "data_map",
+    "all_data",
     "all",
 ]
 
@@ -27,181 +35,191 @@ class Relationship(StrEnum):
 
 
 class Reconcile:
-    def __init__(self, left: pd.Series, right: pd.Series) -> None:
-        self.left = left.convert_dtypes()
-        self.right = right.convert_dtypes()
-        self.data_map = pd.DataFrame()
-        """
-        index = `left.index`.
-        ["value"] = Combined values from `left` and `right`.
-        ["right_index"] = Mapped `right.index`.
-        """
-        self.commons = pd.DataFrame()
-        self.left_commons = pd.Series()
-        self.right_commons = pd.Series()
-        self.left_uniques = pd.Series()
-        self.right_uniques = pd.Series()
-        self.relationship: Relationship
+    def __init__(
+        self,
+        left: pd.DataFrame,
+        right: pd.DataFrame,
+        left_on: str,
+        right_on: str,
+        suffixes: Suffixes = ("_left", "_right"),
+    ) -> None:
+        self.left = left
+        self.right = right
+        self.left_on = left_on
+        self.right_on = right_on
 
-        self._uniques()
-        self._common()
-        self._possible_relationship()
+        if isinstance(self.left, pd.Series):
+            self.left = self.left.to_frame(name="left")
+            self.left_on = "left"
+        if isinstance(self.right, pd.Series):
+            self.right = self.right.to_frame(name="right")
+            self.right_on = "right"
 
-    def _uniques(self, refresh=False):
-        """
-        Filter for unique items which only in one of the series.
+        self.suffixes = suffixes
 
-        Item order is ignored. Duplicates are preserved. Indexes are preserved.
-        """
+        self._left_name_map, self._right_name_map = self._map_column_names()
 
-        def to_series_left(x: pd.DataFrame):
-            return pd.Series(
-                data=x["value"].convert_dtypes().values,
-                index=x.index.astype("int64"),
-                name="left_uniques",
-            ).rename_axis(index=None)
+        self.output_dispatch: dict[str, Union[pd.Series, pd.DataFrame]] = {
+            "left_only": self.left_only,
+            "right_only": self.right_only,
+            "left_duplicate": self.left_duplicate,
+            "right_duplicate": self.right_duplicate,
+            "left_both": self.left_both,
+            "right_both": self.right_both,
+            "left": self.left,
+            "right": self.right,
+            "both": self.both,
+            "all": self.all_data,
+        }
 
-        def to_series_right(x: pd.Series):
-            return pd.Series(
-                data=x["value"].convert_dtypes().values,
-                index=x["right_index"].astype("int64"),
-                name="right_uniques",
-            ).rename_axis(index=None)
+    @cached_property
+    def all_data(self) -> pd.DataFrame:
+        return pd.merge(
+            self.left.reset_index(names="index"),
+            self.right.reset_index(names="index"),
+            left_on=self.left_on,
+            right_on=self.right_on,
+            indicator=True,
+            how="outer",
+            suffixes=self.suffixes,
+        )
 
-        self._map_data()
+    @cached_property
+    def both(self) -> pd.DataFrame:
+        return self.all_data.loc[self.all_data["_merge"] == "both"]
 
-        if self.left_uniques.empty or refresh:
-            self.left_uniques = to_series_left(
-                self.data_map.loc[self.data_map["right_index"].isna()]
-            )
+    @cached_property
+    def left_both(self) -> pd.DataFrame:
+        return (
+            self.both[self._left_name_map.values()]
+            .drop_duplicates()
+            .set_index(f"index{self.suffixes[0]}")
+        )
 
-        if self.right_uniques.empty or refresh:
-            self.right_uniques = to_series_right(
-                self.data_map.loc[self.data_map.index.isna()]
-            )
+    @cached_property
+    def right_both(self) -> pd.DataFrame:
+        return (
+            self.both[self._right_name_map.values()]
+            .drop_duplicates()
+            .set_index(f"index{self.suffixes[1]}")
+        )
 
-    def _common(self, refresh=False):
-        """
-        Filter for common items which exists in both series.
+    @cached_property
+    def left_only(self) -> pd.DataFrame:
+        return self.all_data.loc[
+            self.all_data["_merge"] == "left_only", list(self._left_name_map.values())
+        ].set_index(f"index{self.suffixes[0]}")
 
-        Complex 1:m, m:1 and m:m relationships can be traced using the `left_map` and
-        `right_map`.
-        Item order is ignored. Duplicates are preserved. Indexes are preserved.
-        """
+    @cached_property
+    def right_only(self) -> pd.DataFrame:
+        return self.all_data.loc[
+            self.all_data["_merge"] == "right_only", list(self._right_name_map.values())
+        ].set_index(f"index{self.suffixes[1]}")
 
-        def to_series_right(x: pd.DataFrame):
-            return pd.Series(
-                data=x["value"].convert_dtypes().values,
-                index=x["right_index"].astype("int64"),
-                name="right_commons",
-            ).rename_axis(index=None)
+    @cached_property
+    def left_duplicate(self) -> pd.DataFrame:
+        return self.left.loc[self.left.duplicated(keep="first")]
 
-        self._map_data()
+    @cached_property
+    def right_duplicate(self) -> pd.DataFrame:
+        return self.right.loc[self.right.duplicated(keep="first")]
 
-        if self.commons.empty or refresh:
-            self.commons = (
-                self.data_map.loc[
-                    ~self.data_map.index.isna() & ~self.data_map["right_index"].isna()
-                ]
-                .rename_axis(index="left_index")
-                .convert_dtypes()
-            )
-            self.left_commons = (
-                self.commons["value"]
-                .iloc[self.commons.index.drop_duplicates()]
-                .rename("left_commons")
-                .rename_axis(index=None)
-                .convert_dtypes()
-            )
-            self.left_commons.index = self.left_commons.index.astype("int64")
+    @cached_property
+    def is_left_unique(self) -> bool:
+        return self.left[self.left_on].is_unique
 
-            self.right_commons = to_series_right(
-                self.commons.drop_duplicates("right_index")
-            )
+    @cached_property
+    def is_right_unique(self) -> bool:
+        return self.right[self.right_on].is_unique
 
-    @staticmethod
-    def _swap_series_data_index(series: pd.Series, series_name: str):
-        return pd.Series(
-            data=series.index.values,
-            index=series.values,
-            name=series_name,
-        ).convert_dtypes()
-
-    def _map_data(self, refresh=False):
-        """
-        Map `left` to `right` through an 'outer' join.
-        """
-        if self.data_map.empty or refresh:
-            self.data_map = (
-                self.left.rename_axis(index="left_index")
-                .to_frame("value")
-                .join(
-                    on="value",
-                    other=self._swap_series_data_index(self.right, "right_index"),
-                    how="outer",
-                )
-                .rename_axis(index="left_index")
-            )
-
-    def _possible_relationship(self, refresh=False):
-        """
-        Determines the possible relationship between `left` and `right`.
-        """
-
-        left_unique = self.left.is_unique
-        right_unique = self.right.is_unique
-
-        if left_unique and right_unique:
-            self.relationship = Relationship.ONE_TO_ONE
-        elif left_unique and not right_unique:
-            self.relationship = Relationship.ONE_TO_MANY
-        elif not left_unique and right_unique:
-            self.relationship = Relationship.MANY_TO_ONE
+    @cached_property
+    def relationship(self) -> Relationship:
+        if self.is_left_unique and self.is_right_unique:
+            return Relationship.ONE_TO_ONE
+        elif self.is_left_unique and not self.is_right_unique:
+            return Relationship.ONE_TO_MANY
+        elif not self.is_left_unique and self.is_right_unique:
+            return Relationship.MANY_TO_ONE
         else:
-            self.relationship = Relationship.MANY_TO_MANY
+            return Relationship.MANY_TO_MANY
 
-    def info(self):
+    def _map_column_names(self):
+        left_columns = set(self.left.reset_index(names="index").columns)
+        right_columns = set(self.right.reset_index(names="index").columns)
+        common_columns = left_columns & right_columns
+        left_only = left_columns - right_columns
+        right_only = right_columns - left_columns
+
+        # Where the merge on column has the same name pandas doesn't add a suffix
+        if self.left_on == self.right_on:
+            common_columns.remove(self.left_on)
+            left_columns.add(self.left_on)
+            right_columns.add(self.right_on)
+
+        if len(self.suffixes) == 1:
+            suffixes = (self.suffixes[0], "")
+        assert self.suffixes[0] or self.suffixes[1]
+        suffixes = (
+            self.suffixes[0] or "",
+            self.suffixes[1] or "",
+        )
+
+        left_map: dict[str, str] = {}
+        left_map.update({col: col for col in left_only})
+        left_map.update({col: col + suffixes[0] for col in common_columns})
+
+        right_map: dict[str, str] = {}
+        right_map.update({col: col for col in right_only})
+        right_map.update({col: col + suffixes[1] for col in common_columns})
+
+        return left_map, right_map
+
+    def info(self) -> None:
         left_stats = (
-            f"{self.commons.index.nunique():,d} common + "
-            f"{self.left_uniques.size:,d} unique = "
-            f"{self.left.size:,d} records"
+            f"{len(self.left_both):,d} common + "
+            f"{len(self.left_only):,d} unique = "
+            f"{len(self.left):,d} records"
         )
         right_stats = (
-            f"{self.commons['right_index'].nunique():,d} common + "
-            f"{self.left_uniques.size:,d} unique = "
-            f"{self.right.size:,d} records"
+            f"{len(self.right_both):,d} common + "
+            f"{len(self.left_only):,d} unique = "
+            f"{len(self.right):,d} records"
         )
         report = dedent(
             f"""
         Reconciliation summary
 
-        Left ({self.left.name}): {left_stats}
-        Right ({self.right.name}): {right_stats}
-        Relationship: {self.relationship}
+        Left: {left_stats}
+        Right: {right_stats}
+        Relationship: {self.relationship} ({self.left_on}:{self.right_on})
         """
         )
         print(report)
 
     def to_xlsx(
         self, path: FilePath, recon_components: list[RECON_COMPONENTS], **kwargs
-    ):
-        df_dispatch: dict[str, Union[pd.Series, pd.DataFrame]] = {
-            "left_commons": self.left_commons,
-            "right_commons": self.right_commons,
-            "left_uniques": self.left_uniques,
-            "right_uniques": self.right_uniques,
-            "commons": self.commons,
-            "data_map": self.data_map,
-            "left": self.left,
-            "right": self.right,
-        }
-
+    ) -> None:
         write_list = (
-            df_dispatch.keys() if "all" in recon_components else recon_components
+            self.output_dispatch.keys()
+            if "all_data" in recon_components
+            else recon_components
         )
 
         with pd.ExcelWriter(path, **kwargs) as writer:
             for component in write_list:
-                df_dispatch[component].to_excel(
+                self.output_dispatch[component].to_excel(
                     writer, sheet_name=component, index_label="index"
                 )
+
+    def to_stdout(self, recon_components: list[RECON_COMPONENTS], **kwargs) -> None:
+        write_list = (
+            self.output_dispatch.keys()
+            if "all_data" in recon_components
+            else recon_components
+        )
+
+        for component in write_list:
+            print(f"--------- {component} ----------")
+            self.output_dispatch[component].to_csv(
+                sys.stdout, index_label="index", **kwargs
+            )
