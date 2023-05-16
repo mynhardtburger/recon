@@ -53,12 +53,12 @@ def test_reconcile_attributes(s1: pd.Series, s2: pd.Series, rec: Reconcile):
     reconstructed_s2 = pd.concat(
         [
             pd.Series(
-                data=rec.commons.drop_duplicates(subset="right_index")["value"].values,
-                index=rec.commons.drop_duplicates(subset="right_index")[
+                data=rec.both.drop_duplicates(subset="right_index")["value"].values,
+                index=rec.both.drop_duplicates(subset="right_index")[
                     "right_index"
                 ].values,
             ),
-            rec.right_uniques,
+            rec.right_only,
         ]
     ).convert_dtypes()
 
@@ -67,13 +67,13 @@ def test_reconcile_attributes(s1: pd.Series, s2: pd.Series, rec: Reconcile):
     pd.testing.assert_series_equal(s2, rec.right)
 
     assert rec.relationship == Relationship.MANY_TO_MANY
-    pd.testing.assert_series_equal(rec.left_uniques, left_uniques)
-    pd.testing.assert_series_equal(rec.right_uniques, right_uniques)
+    pd.testing.assert_series_equal(rec.left_only, left_uniques)
+    pd.testing.assert_series_equal(rec.right_only, right_uniques)
 
-    pd.testing.assert_series_equal(rec.left_commons, left_commons)
-    pd.testing.assert_series_equal(rec.right_commons, right_commons)
+    pd.testing.assert_series_equal(rec.left_only, left_commons)
+    pd.testing.assert_series_equal(rec.right_both, right_commons)
 
-    pd.testing.assert_frame_equal(rec.commons, commons, check_index_type=False)
+    pd.testing.assert_frame_equal(rec.both, commons, check_index_type=False)
     pd.testing.assert_frame_equal(rec.data_map, data_map, check_index_type=False)
 
     pd.testing.assert_series_equal(
