@@ -4,20 +4,36 @@ version = "0.0.1"
 authors = [
   { name="Mynhardt Burger", email="mynhardt+recon@gmail.com" },
 ]
-description = "A tool to reconcile sets of transactional data"
+description = "Simple reconciliation of two lists based on a common field"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Intended Audience :: Financial and Insurance Industry",
     "Natural Language :: English",
-    "Development Status :: 2 - Pre-Alpha",
+    "Private :: Do Not Upload"
+]
+
+dependencies = [
+    "pandas == 2.0.1",
+    "pandas[performance] == 2.0.1",
+    "pandas[excel] == 2.0.1"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest >=2.7.3",
+    "pytest-cov",
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/mynhardtburger/recon"
+"Homepage" = "https://github.com/mynhardtburger/recon-cli"
 
 [tool.isort]
 profile = "black"
+
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
