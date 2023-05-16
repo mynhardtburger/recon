@@ -2,8 +2,9 @@ import sys
 from enum import StrEnum
 from functools import cached_property
 from os import PathLike
+from pathlib import PurePath
 from textwrap import dedent
-from typing import Literal, Union
+from typing import Any, Literal, Union
 
 import pandas as pd
 
@@ -223,3 +224,63 @@ class Reconcile:
             self.output_dispatch[component].to_csv(
                 sys.stdout, index_label="index", **kwargs
             )
+
+    @staticmethod
+    def _read_file(
+        data: Union[pd.Series, pd.DataFrame, FilePath],
+        position: Literal["left", "right"],
+        sheet_name: str = "Sheet1",
+        **kwargs,
+    ):
+        if isinstance(data, pd.DataFrame):
+            return data
+
+        if isinstance(data, pd.Series):
+            return data.to_frame(name=position)
+
+        file_path = PurePath(data)
+        if file_path.suffix.lower() in {"xlsx", "xls", "xlsm", "xlsb"}:
+            if not isinstance(sheet_name, (str, int)):
+                raise ValueError("Importing of multiple sheets is not supported")
+            return pd.read_excel(file_path, sheet_name, **kwargs)
+        else:
+            return pd.read_csv(file_path, **kwargs)
+
+    @staticmethod
+    def read_files(
+        left: FilePath,
+        right: FilePath,
+        left_on: str,
+        right_on: str,
+        suffixes: tuple[str, str] = ("_left", "_right"),
+        left_kwargs: dict[str, Any] = {},
+        right_kwargs: dict[str, Any] = {},
+    ):
+        """
+        Returns a :class:`Reconcile` object which can be queried.
+
+        Excel files are identified by the ".xlsx" extension. All other extensions
+        are assumed to be csv. :param:`left_kwargs` and :param:`right_kwargs` are
+        passed onto the `pandas.read_excel()` and `pandas.read_csv()` methods.
+        """
+        recon = Reconcile()
+
+        recon.left = Reconcile._read_file(left, "left", **left_kwargs)
+        if left_on in recon.left.columns:
+            recon.left_on = left_on
+        else:
+            raise ValueError(
+                f"left_on ({left_on}) doesn't exist within the left dataset."
+            )
+
+        recon.right = Reconcile._read_file(right, "right", **right_kwargs)
+        if right_on in recon.right.columns:
+            recon.right_on = right_on
+        else:
+            raise ValueError(
+                f"right_on ({right_on}) doesn't exist within the right dataset."
+            )
+
+        recon.suffixes = suffixes
+
+        return recon
