@@ -29,6 +29,9 @@ test = [
 [project.urls]
 "Homepage" = "https://github.com/mynhardtburger/recon-cli"
 
+[tool.flit.module]
+name = "recon"
+
 [tool.isort]
 profile = "black"
 
