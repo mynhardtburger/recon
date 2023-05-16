@@ -1,5 +1,5 @@
 [project]
-name = "recon"
+name = "recon-cli"
 version = "0.0.1"
 authors = [
   { name="Mynhardt Burger", email="mynhardt+recon@gmail.com" },
