@@ -12,9 +12,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Intended Audience :: Financial and Insurance Industry",
-    "Natural Language :: English",
-    "Private :: Do Not Upload"
-]
+    "Natural Language :: English"]
 
 dependencies = [
     "pandas == 2.0.1",
