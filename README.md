@@ -77,6 +77,7 @@ recon = Reconcile.read_df(
     right_on="Sales Order #",
 )
 
+# Properties:
 # Components of the recon are lazily evaluated and cached as you access the relevant properties.
 # All properties return a pandas DataFrame.
 # The original indexes are preserved, except for the .both property where the original indexes are columns.
@@ -99,8 +100,9 @@ recon.is_left_unique  # bool. Are there duplicate records within the `left_on` f
 recon.is_right_unique  # bool. Are there duplicate records within the `right_on` field?
 recon.relationship  # 1:1, 1:m, m:1 or m:m relationship between datasets
 
-# Output methods
-# `recon_components` parameter is an ordered list of any of the property names. "all" is a shorthand for most properties
+# Output methods:
+# `recon_components` parameter is an ordered list of any of the DataFrame property names.
+# "all" is a shorthand for most properties.
 recon.info()  # Prints a summary of recon results
 recon.to_stdout(recon_components=["all"]) # Prints all recon results to console
 recon.to_xlsx(path="recon_results.xlsx", recon_components=["all"]) # Saves all recon results to xlsx
