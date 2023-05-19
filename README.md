@@ -15,7 +15,7 @@ For commandline use install recon-cli via [pipx](https://pypa.github.io/pipx/):
 
 ```sh
 # For command line usage
-pipx install recon-cli
+pipx install recon-cli --include-deps
 recon --help
 ```
 
