@@ -3,7 +3,7 @@ from pathlib import Path
 import typer
 from typing_extensions import Annotated
 
-from recon.main import Reconcile
+from recon.reconcile import Reconcile
 
 
 def main(

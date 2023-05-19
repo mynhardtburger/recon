@@ -1,4 +1,4 @@
-from recon.main import Reconcile, Relationship
+from recon.reconcile import Reconcile, Relationship
 
 __all__ = [
     "Reconcile",
