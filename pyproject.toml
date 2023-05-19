@@ -1,10 +1,10 @@
 [project]
 name = "recon-cli"
-version = "0.0.4a1"
+version = "0.0.4"
 authors = [
   { name="Mynhardt Burger", email="mynhardt+recon@gmail.com" },
 ]
-description = "Simple reconciliation of two lists based on a common field"
+description = "Simple command line tool to reconcile datasets"
 readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
