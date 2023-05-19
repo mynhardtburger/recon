@@ -1,6 +1,6 @@
 [project]
 name = "recon-cli"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="Mynhardt Burger", email="mynhardt+recon@gmail.com" },
 ]
@@ -17,7 +17,8 @@ classifiers = [
 dependencies = [
     "pandas == 2.0.1",
     "pandas[performance] == 2.0.1",
-    "pandas[excel] == 2.0.1"
+    "pandas[excel] == 2.0.1",
+    "typer[all] == 0.9.0"
 ]
 
 [project.optional-dependencies]
