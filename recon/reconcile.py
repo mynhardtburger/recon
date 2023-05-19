@@ -18,14 +18,15 @@ Suffixes = Union[
 ]
 
 RECON_COMPONENTS = Literal[
-    "left_both",
-    "right_both",
     "left_only",
     "right_only",
     "left_duplicate",
     "right_duplicate",
+    "left_both",
+    "right_both",
+    "left",
+    "right",
     "both",
-    "data_map",
     "all_data",
     "all",
 ]
@@ -45,7 +46,21 @@ class Reconcile:
 
         self.suffixes: tuple[str, str]
 
-        self.output_dispatch = [
+        self._output_dispatch = [
+            "left_only",
+            "right_only",
+            "left_duplicate",
+            "right_duplicate",
+            "left_both",
+            "right_both",
+            "left",
+            "right",
+            "both",
+            "all_data",
+        ]
+        """List of property names available for output."""
+
+        self._all = [
             "left_only",
             "right_only",
             "left_duplicate",
@@ -55,7 +70,7 @@ class Reconcile:
             "left",
             "right",
         ]
-        """Set of property names available for export."""
+        """List of property names represented by "all"."""
 
     def _map_column_names(self):
         left_columns = set(self.left.reset_index(names="index").columns)
@@ -209,9 +224,10 @@ class Reconcile:
         recon_components: list[RECON_COMPONENTS] = ["all"],
         **kwargs,
     ) -> None:
-        write_list = (
-            self.output_dispatch if "all" in recon_components else recon_components
-        )
+        if recon_components == ["all"]:
+            write_list = self._all
+        else:
+            write_list = [x for x in recon_components if x in self._output_dispatch]
 
         with pd.ExcelWriter(path, **kwargs) as writer:
             for component in write_list:
@@ -222,9 +238,10 @@ class Reconcile:
     def to_stdout(
         self, recon_components: list[RECON_COMPONENTS] = ["all"], **kwargs
     ) -> None:
-        write_list = (
-            self.output_dispatch if "all" in recon_components else recon_components
-        )
+        if recon_components == ["all"]:
+            write_list = self._all
+        else:
+            write_list = [x for x in recon_components if x in self._output_dispatch]
 
         print("--------- START ----------")
         for component in write_list:

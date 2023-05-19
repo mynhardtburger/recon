@@ -145,17 +145,13 @@ def main(
             raise typer.Exit()
 
         if std_out:
-            recon.to_stdout(["all_data"])
+            recon.to_stdout(["all"])
             raise typer.Exit()
 
         if output_file:
-            recon.to_xlsx(output_file, ["all_data"])
+            recon.to_xlsx(output_file, ["all"])
             print(f"Recon results saved to '{output_file}'.")
             raise typer.Exit()
 
 
 app = typer.run(main)
-
-# if __name__ == "__main__":
-#     print("sdf")
-#     # typer.run(main)
