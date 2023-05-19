@@ -1,6 +1,6 @@
 [project]
 name = "recon-cli"
-version = "0.0.3"
+version = "0.0.4a1"
 authors = [
   { name="Mynhardt Burger", email="mynhardt+recon@gmail.com" },
 ]
@@ -26,6 +26,9 @@ test = [
     "pytest >=2.7.3",
     "pytest-cov",
 ]
+
+[project.entry-points."console_scripts"]
+recon = "recon.main:main"
 
 [project.urls]
 "Homepage" = "https://github.com/mynhardtburger/recon-cli"
