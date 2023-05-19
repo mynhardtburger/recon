@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import typer
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from typing_extensions import Annotated
 
 from recon.reconcile import Reconcile
@@ -10,7 +11,8 @@ def main(
     left: Annotated[
         Path,
         typer.Argument(
-            help="Path to the left dataset",
+            default=...,
+            help="Path to the left dataset.",
             show_default=False,
             exists=True,
             file_okay=True,
@@ -23,7 +25,8 @@ def main(
     right: Annotated[
         Path,
         typer.Argument(
-            help="Path to the right dataset",
+            default=...,
+            help="Path to the right dataset.",
             show_default=False,
             exists=True,
             file_okay=True,
@@ -36,66 +39,119 @@ def main(
     left_on: Annotated[
         str,
         typer.Argument(
-            help="Reconcile using this field from the left dataset",
+            default=...,
+            help="Reconcile using this field from the left dataset.",
             show_default=False,
         ),
     ],
     right_on: Annotated[
         str,
         typer.Argument(
-            help="Reconcile using this field from the right dataset",
+            default=...,
+            help="Reconcile using this field from the right dataset.",
             show_default=False,
         ),
     ],
-    output_file: Annotated[
-        str, typer.Option(help="Path to save results to", show_default=False)
-    ] = "",
+    left_suffix: Annotated[
+        str,
+        typer.Option(
+            default=...,
+            help="Suffix to append to the left dataset's column names.",
+            show_default=True,
+            rich_help_panel="Input options",
+        ),
+    ] = "_left",
+    right_suffix: Annotated[
+        str,
+        typer.Option(
+            default=...,
+            help="Suffix to append to the right dataset's column names.",
+            show_default=True,
+            rich_help_panel="Input options",
+        ),
+    ] = "_right",
     left_sheet: Annotated[
         str,
         typer.Option(
-            help="Sheet to read from left if left is a spreadsheet",
+            default=...,
+            help="Sheet to read from left if left is a spreadsheet.",
             show_default=True,
+            rich_help_panel="Input options",
         ),
     ] = "Sheet1",
     right_sheet: Annotated[
         str,
         typer.Option(
-            help="Sheet to read from left if left is a spreadsheet",
+            default=...,
+            help="Sheet to read from left if left is a spreadsheet.",
             show_default=True,
+            rich_help_panel="Input options",
         ),
     ] = "Sheet1",
-    std_out: Annotated[bool, typer.Option(help="Print results to stdout")] = False,
-    info_only: Annotated[bool, typer.Option(help="Print summary results only")] = False,
-    suffixes: Annotated[
-        tuple[str, str],
-        typer.Argument(help="Print summary results only"),
-    ] = ("_left", "_right"),
+    output_file: Annotated[
+        str,
+        typer.Option(
+            default=...,
+            help="Path to save results (in xlsx format) to.",
+            show_default=False,
+            rich_help_panel="Output options",
+        ),
+    ] = "",
+    std_out: Annotated[
+        bool,
+        typer.Option(
+            default=...,
+            help="Print results to stdout.",
+            rich_help_panel="Output options",
+        ),
+    ] = False,
+    info_only: Annotated[
+        bool,
+        typer.Option(
+            default=...,
+            help="Print summary results only.",
+            rich_help_panel="Output options",
+        ),
+    ] = False,
 ):
-    try:
-        recon = Reconcile.read_files(
-            left_file=left,
-            right_file=right,
-            left_on=left_on,
-            right_on=right_on,
-            suffixes=suffixes,
-            left_kwargs={"sheet_name": left_sheet},
-            right_kwargs={"sheet_name": right_sheet},
-        )
-    except ValueError as e:
-        print(e)
+    if left_suffix == right_suffix:
+        print("Suffixes cannot be the same to avoid field name conflicts.")
         raise typer.Abort()
 
-    if info_only:
-        recon.info()
-        raise typer.Exit()
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        progress.add_task(description="Reading datasets...", total=None)
+        try:
+            recon = Reconcile.read_files(
+                left_file=left,
+                right_file=right,
+                left_on=left_on,
+                right_on=right_on,
+                suffixes=(left_suffix, right_suffix),
+                left_kwargs={"sheet_name": left_sheet},
+                right_kwargs={"sheet_name": right_sheet},
+            )
+        except ValueError as e:
+            print(e)
+            raise typer.Abort()
 
-    if std_out:
-        recon.to_stdout(["all_data"])
-        raise typer.Exit()
+        progress.add_task(description="Reconciling...", total=None)
 
-    if output_file:
-        recon.to_xlsx(output_file, ["all_data"])
-        raise typer.Exit()
+        if info_only:
+            recon.info()
+            raise typer.Exit()
+
+        if std_out:
+            recon.to_stdout(["all_data"])
+            raise typer.Exit()
+
+        if output_file:
+            recon.to_xlsx(output_file, ["all_data"])
+            print(f"Recon results saved to '{output_file}'.")
+            raise typer.Exit()
 
 
 if __name__ == "__main__":
