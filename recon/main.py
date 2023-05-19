@@ -154,5 +154,8 @@ def main(
             raise typer.Exit()
 
 
-if __name__ == "__main__":
-    typer.run(main)
+app = typer.run(main)
+
+# if __name__ == "__main__":
+#     print("sdf")
+#     # typer.run(main)

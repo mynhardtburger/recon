@@ -27,8 +27,8 @@ test = [
     "pytest-cov",
 ]
 
-[project.entry-points."console_scripts"]
-recon = "recon.main:main"
+[project.scripts]
+recon = "recon.main:app"
 
 [project.urls]
 "Homepage" = "https://github.com/mynhardtburger/recon-cli"
