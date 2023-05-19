@@ -12,7 +12,7 @@ def main(
         Path,
         typer.Argument(
             default=...,
-            help="Path to the left dataset.",
+            help="Path to the left dataset (csv|xlsx).",
             show_default=False,
             exists=True,
             file_okay=True,
@@ -26,7 +26,7 @@ def main(
         Path,
         typer.Argument(
             default=...,
-            help="Path to the right dataset.",
+            help="Path to the right dataset (csv|xlsx).",
             show_default=False,
             exists=True,
             file_okay=True,
@@ -92,7 +92,7 @@ def main(
         str,
         typer.Option(
             default=...,
-            help="Path to save results (in xlsx format) to.",
+            help="Path to save results to (xlsx).",
             show_default=False,
             rich_help_panel="Output options",
         ),

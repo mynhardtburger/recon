@@ -204,10 +204,13 @@ class Reconcile:
         print(report)
 
     def to_xlsx(
-        self, path: FilePath, recon_components: list[RECON_COMPONENTS], **kwargs
+        self,
+        path: FilePath,
+        recon_components: list[RECON_COMPONENTS] = ["all"],
+        **kwargs,
     ) -> None:
         write_list = (
-            self.output_dispatch if "all_data" in recon_components else recon_components
+            self.output_dispatch if "all" in recon_components else recon_components
         )
 
         with pd.ExcelWriter(path, **kwargs) as writer:
@@ -216,9 +219,11 @@ class Reconcile:
                     writer, sheet_name=component, index_label="index"
                 )
 
-    def to_stdout(self, recon_components: list[RECON_COMPONENTS], **kwargs) -> None:
+    def to_stdout(
+        self, recon_components: list[RECON_COMPONENTS] = ["all"], **kwargs
+    ) -> None:
         write_list = (
-            self.output_dispatch if "all_data" in recon_components else recon_components
+            self.output_dispatch if "all" in recon_components else recon_components
         )
 
         print("--------- START ----------")
