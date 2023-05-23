@@ -15,7 +15,7 @@ For commandline use install recon-cli via [pipx](https://pypa.github.io/pipx/):
 
 ```sh
 # For command line usage
-pipx install recon-cli --include-deps
+pipx install recon-cli
 recon --help
 ```
 
@@ -32,26 +32,26 @@ pip install recon-cli
 ```plaintext
  Usage: recon [OPTIONS] LEFT RIGHT LEFT_ON RIGHT_ON
 
-╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────────╮
-│ *    left          FILE  Path to the left dataset. [required]                                        │
-│ *    right         FILE  Path to the right dataset. [required]                                       │
-│ *    left_on       TEXT  Reconcile using this field from the left dataset. [required]                │
-│ *    right_on      TEXT  Reconcile using this field from the right dataset. [required]               │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --help          Show this message and exit.                                                          │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Input options ──────────────────────────────────────────────────────────────────────────────────────╮
-│ --left-suffix         TEXT  Suffix to append to the left dataset's column names. [default: _left]    │
-│ --right-suffix        TEXT  Suffix to append to the right dataset's column names. [default: _right]  │
-│ --left-sheet          TEXT  Sheet to read from left if left is a spreadsheet. [default: Sheet1]      │
-│ --right-sheet         TEXT  Sheet to read from left if left is a spreadsheet. [default: Sheet1]      │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Output options ─────────────────────────────────────────────────────────────────────────────────────╮
-│ --output-file                      TEXT  Path to save results (in xlsx format) to.                   │
-│ --std-out        --no-std-out            Print results to stdout. [default: no-std-out]              │
-│ --info-only      --no-info-only          Print summary results only. [default: no-info-only]         │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Arguments ──────────────────────────────────────────────────────────────────────────────────────╮
+│ *    left          FILE  Path to the left dataset. [required]                                    │
+│ *    right         FILE  Path to the right dataset. [required]                                   │
+│ *    left_on       TEXT  Reconcile using this field from the left dataset. [required]            │
+│ *    right_on      TEXT  Reconcile using this field from the right dataset. [required]           │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────╮
+│ --help          Show this message and exit.                                                      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Input options ──────────────────────────────────────────────────────────────────────────────────╮
+│ --left-suffix     TEXT  Suffix to append to the left dataset's column names. [default: _left]    │
+│ --right-suffix    TEXT  Suffix to append to the right dataset's column names. [default: _right]  │
+│ --left-sheet      TEXT  Sheet to read from left if left is a spreadsheet. [default: Sheet1]      │
+│ --right-sheet     TEXT  Sheet to read from left if left is a spreadsheet. [default: Sheet1]      │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Output options ─────────────────────────────────────────────────────────────────────────────────╮
+│ --output-file                  TEXT  Path to save results (in xlsx format) to.                   │
+│ --std-out        --no-std-out          Print results to stdout. [default: no-std-out]            │
+│ --info-only      --no-info-only        Print summary results only. [default: no-info-only]       │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 ### Python
