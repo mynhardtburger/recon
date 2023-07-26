@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
 from os import PathLike
 from textwrap import dedent
-from typing import Any, Literal, Union
+from typing import Any, Literal, Optional, Union
 
 import pandas as pd
 
@@ -36,12 +37,50 @@ Relationship = Enum(
 )
 
 
+@dataclass
+class ReconciledData:
+    both: pd.DataFrame
+    left_duplicate: pd.DataFrame
+    right_duplicate: pd.DataFrame
+    left_only: pd.DataFrame
+    right_only: pd.DataFrame
+
+
+@dataclass
+class ReconciledArgs:
+    left_on: str
+    right_on: str
+    left_suffix: Optional[str] = None
+    right_suffix: Optional[str] = None
+    left_sheet_name: Optional[str] = None
+    right_sheet_name: Optional[str] = None
+
+
+@dataclass
+class ReconciledStats:
+    rows: int = 0
+    both_rows: int = 0
+    unique_rows: int = 0
+    duplicated_rows: int = 0
+
+
+@dataclass
+class ReconciledReport:
+    data: ReconciledData
+    args: ReconciledArgs
+    relationship: Relationship
+    left_stats: ReconciledStats
+    right_stats: ReconciledStats
+
+
 class Reconcile:
     def __init__(self) -> None:
         self.left: pd.DataFrame
         self.right: pd.DataFrame
         self.left_on: str
         self.right_on: str
+        self.left_sheet_name: Optional[str] = None
+        self.right_sheet_name: Optional[str] = None
 
         self.suffixes: tuple[str, str]
 
@@ -217,6 +256,38 @@ class Reconcile:
         )
         print(report)
 
+    def to_object(self) -> ReconciledReport:
+        return ReconciledReport(
+            data=ReconciledData(
+                both=self.both,
+                left_duplicate=self.left_duplicate,
+                right_duplicate=self.right_duplicate,
+                left_only=self.left_only,
+                right_only=self.right_only,
+            ),
+            args=ReconciledArgs(
+                left_on=self.left_on,
+                right_on=self.right_on,
+                left_suffix=self.suffixes[0],
+                right_suffix=self.suffixes[1],
+                left_sheet_name=self.left_sheet_name,
+                right_sheet_name=self.right_sheet_name,
+            ),
+            relationship=self.relationship,
+            left_stats=ReconciledStats(
+                rows=len(self.left),
+                both_rows=len(self.left_both),
+                unique_rows=len(self.left_only),
+                duplicated_rows=len(self.left_duplicate),
+            ),
+            right_stats=ReconciledStats(
+                rows=len(self.right),
+                both_rows=len(self.right_both),
+                unique_rows=len(self.right_only),
+                duplicated_rows=len(self.right_duplicate),
+            ),
+        )
+
     def to_xlsx(
         self,
         path: FilePath,
@@ -311,8 +382,10 @@ class Reconcile:
         recon = Reconcile()
 
         left_df = Reconcile._read_obj(left_file, **left_kwargs)
+        recon.left_sheet_name = left_kwargs.get("sheet_name", None)
 
         right_df = Reconcile._read_obj(right_file, **right_kwargs)
+        recon.right_sheet_name = right_kwargs.get("sheet_name", None)
 
         recon = Reconcile._load_df(
             recon, left_df, right_df, left_on, right_on, suffixes

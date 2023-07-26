@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import csv
 import pickle
 from io import BytesIO, StringIO
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from openpyxl import Workbook
+from openpyxl.worksheet.worksheet import Worksheet
 
 import recon as rc
 
@@ -23,6 +26,50 @@ def df2():
 @pytest.fixture()
 def recon(s1, df2):
     return rc.Reconcile.read_df(s1, df2, left_on="left", right_on="right")
+
+
+@pytest.fixture()
+def xlsx_wb():
+    wb = Workbook()
+    ws: Worksheet = wb.active
+    ws.title = "Tree Data"
+    treeData = [
+        ["Type", "Leaf Color", "Height"],
+        ["Maple", "Red", 549],
+        ["Oak", "Green", 783],
+        ["Pine", "Green", 1204],
+    ]
+    for row in treeData:
+        ws.append(row)
+
+    return wb
+
+
+@pytest.fixture()
+def xlsx_file(xlsx_wb):
+    xlsx_file = BytesIO()
+    xlsx_wb.save(xlsx_file)
+    xlsx_file.seek(0)
+
+    return xlsx_file
+
+
+@pytest.fixture()
+def csv_file():
+    treeData = [
+        ["Type", "Leaf Color", "Height"],
+        ["Maple", "Red", 549],
+        ["Oak", "Green", 783],
+        ["Pine", "Green", 1204],
+    ]
+
+    csv_file = StringIO()
+
+    writer = csv.writer(csv_file)
+    writer.writerows(treeData)
+
+    csv_file.seek(0)
+    return csv_file
 
 
 def test_reconcile_attributes(s1: pd.Series, df2: pd.Series, recon: rc.Reconcile):
