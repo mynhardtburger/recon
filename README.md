@@ -106,6 +106,7 @@ recon.relationship  # 1:1, 1:m, m:1 or m:m relationship between datasets
 recon.info()  # Prints a summary of recon results
 recon.to_stdout(recon_components=["all"]) # Prints all recon results to console
 recon.to_xlsx(path="recon_results.xlsx", recon_components=["all"]) # Saves all recon results to xlsx
+recon.to_object() # returns a ReconciledReport object
 ```
 
 ## Dependencies
