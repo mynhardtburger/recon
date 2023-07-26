@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pickle
+from io import BytesIO, StringIO
 from pathlib import Path
 
 import pandas as pd
@@ -113,3 +115,27 @@ def test_read_files(tmp_path: Path, s1: pd.Series, df2: pd.DataFrame):
     )
 
     assert recon2
+
+
+def test__read_obj(csv_file, xlsx_file):
+    # The different possible errors are tested partly for documentation purposes
+    with pytest.raises(ValueError, match="Invalid file path or buffer object type"):
+        rc.Reconcile._read_obj(None)
+    with pytest.raises(ValueError, match="Invalid file path or buffer object type"):
+        rc.Reconcile._read_obj(1)
+    with pytest.raises(ValueError, match="Invalid file path or buffer object type"):
+        rc.Reconcile._read_obj([1])
+    with pytest.raises(ValueError, match="Invalid file path or buffer object type"):
+        rc.Reconcile._read_obj({1})
+    with pytest.raises(FileNotFoundError, match="No such file or directory"):
+        rc.Reconcile._read_obj("")
+    with pytest.raises(pd.errors.EmptyDataError, match="No columns to parse from file"):
+        rc.Reconcile._read_obj(StringIO())
+    with pytest.raises(UnicodeDecodeError, match="codec can't decode byte"):
+        rc.Reconcile._read_obj(BytesIO(pickle.dumps({"asd"})))
+
+    with pytest.raises(ValueError, match=r"Worksheet named '.*' not found"):
+        rc.Reconcile._read_obj(xlsx_file)
+
+    assert isinstance(rc.Reconcile._read_obj(xlsx_file, "Tree Data"), pd.DataFrame)
+    assert isinstance(rc.Reconcile._read_obj(csv_file), pd.DataFrame)

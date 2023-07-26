@@ -4,7 +4,6 @@ import sys
 from enum import Enum
 from functools import cached_property
 from os import PathLike
-from pathlib import PurePath
 from textwrap import dedent
 from typing import Any, Literal, Union
 
@@ -250,18 +249,19 @@ class Reconcile:
         print("--------- END ----------")
 
     @staticmethod
-    def _read_file(
-        data: FilePath,
+    def _read_obj(
+        data: Any,
         sheet_name: str = "Sheet1",
         **kwargs,
     ):
-        file_path = PurePath(data)
-        if file_path.suffix.lower() in {".xlsx", ".xls", ".xlsm", ".xlsb"}:
-            if not isinstance(sheet_name, (str, int)):
-                raise ValueError("Importing of multiple sheets is not supported")
-            return pd.read_excel(file_path, sheet_name, **kwargs)
+        try:
+            excel_file = pd.ExcelFile(data)
+        except Exception:
+            pass
         else:
-            return pd.read_csv(file_path, **kwargs)
+            return pd.read_excel(excel_file, sheet_name, **kwargs)
+
+        return pd.read_csv(data, **kwargs)
 
     @staticmethod
     def _load_df(
@@ -305,15 +305,15 @@ class Reconcile:
         """
         Returns a :class:`Reconcile` object populated with data which can be queried.
 
-        Excel files are identified by their extension. All other extensions
-        are assumed to be csv. :param:`left_kwargs` and :param:`right_kwargs` are
+        :param:`left_kwargs` and :param:`right_kwargs` are
         passed onto the `pandas.read_excel()` and `pandas.read_csv()` methods.
         """
-
-        left_df = Reconcile._read_file(left_file, **left_kwargs)
-        right_df = Reconcile._read_file(right_file, **right_kwargs)
-
         recon = Reconcile()
+
+        left_df = Reconcile._read_obj(left_file, **left_kwargs)
+
+        right_df = Reconcile._read_obj(right_file, **right_kwargs)
+
         recon = Reconcile._load_df(
             recon, left_df, right_df, left_on, right_on, suffixes
         )
