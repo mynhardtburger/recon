@@ -4,6 +4,7 @@ import sys
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
+from io import IOBase
 from os import PathLike
 from textwrap import dedent
 from typing import Any, Literal, Optional, Union
@@ -340,12 +341,19 @@ class Reconcile:
         sheet_name: str = "Sheet1",
         **kwargs,
     ):
+        initial_stream_position = 0
+        if isinstance(data, IOBase) and data.seekable():
+            initial_stream_position = data.tell()
+
         try:
             excel_file = pd.ExcelFile(data)
         except Exception:
             pass
         else:
             return pd.read_excel(excel_file, sheet_name, **kwargs)
+
+        if isinstance(data, IOBase) and data.seekable():
+            data.seek(initial_stream_position)
 
         return pd.read_csv(data, **kwargs)
 
