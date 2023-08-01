@@ -31,6 +31,8 @@ RECON_COMPONENTS = Literal[
     "all",
 ]
 
+DEFAULT_SUFFIXES = ("_left", "_right")
+
 
 Relationship = Enum(
     "Relationship", ["ONE_TO_ONE", "ONE_TO_MANY", "MANY_TO_ONE", "MANY_TO_MANY", "NONE"]
@@ -110,7 +112,30 @@ class Reconcile:
         ]
         """List of property names represented by "all"."""
 
+    def _set_suffixes(self):
+        # No valid suffix set -> use default
+        if (
+            self.suffixes is None
+            or not isinstance(self.suffixes, tuple)
+            or len(self.suffixes) == 0
+            or len(self.suffixes) > 2
+        ):
+            self.suffixes = DEFAULT_SUFFIXES
+
+        # Single suffix -> Assume no suffix for left side
+        elif len(self.suffixes) == 1:
+            self.suffixes = ("", self.suffixes[0])
+
+        else:
+            self.suffixes = (
+                self.suffixes[0] or "",
+                self.suffixes[1] or "",
+            )
+
     def _map_column_names(self):
+        # Ensure suffixes are set properly before mapping
+        self._set_suffixes()
+
         left_columns = set(self.left.reset_index(names="index").columns)
         right_columns = set(self.right.reset_index(names="index").columns)
         common_columns = left_columns & right_columns
@@ -123,21 +148,11 @@ class Reconcile:
             left_columns.add(self.left_on)
             right_columns.add(self.right_on)
 
-        if len(self.suffixes) == 1:
-            suffixes = (self.suffixes[0], "")
-        assert self.suffixes[0] or self.suffixes[1]
-        suffixes = (
-            self.suffixes[0] or "",
-            self.suffixes[1] or "",
-        )
+        left_map = {col: col for col in left_only}
+        left_map.update({col: col + self.suffixes[0] for col in common_columns})
 
-        left_map: dict[str, str] = {}
-        left_map.update({col: col for col in left_only})
-        left_map.update({col: col + suffixes[0] for col in common_columns})
-
-        right_map: dict[str, str] = {}
-        right_map.update({col: col for col in right_only})
-        right_map.update({col: col + suffixes[1] for col in common_columns})
+        right_map = {col: col for col in right_only}
+        right_map.update({col: col + self.suffixes[1] for col in common_columns})
 
         return left_map, right_map
 
@@ -341,7 +356,7 @@ class Reconcile:
         right_df: pd.DataFrame,
         left_on: str,
         right_on: str,
-        suffixes: tuple[str, str] = ("_left", "_right"),
+        suffixes: tuple[str, str] = DEFAULT_SUFFIXES,
     ):
         recon_obj.left = left_df
         if left_on in recon_obj.left.columns:
@@ -369,7 +384,7 @@ class Reconcile:
         right_file: FilePath,
         left_on: str,
         right_on: str,
-        suffixes: tuple[str, str] = ("_left", "_right"),
+        suffixes: tuple[str, str] = DEFAULT_SUFFIXES,
         left_kwargs: dict[str, Any] = {},
         right_kwargs: dict[str, Any] = {},
     ):
@@ -399,7 +414,7 @@ class Reconcile:
         right_df: Union[pd.DataFrame, pd.Series[Any]],
         left_on: str,
         right_on: str,
-        suffixes: tuple[str, str] = ("_left", "_right"),
+        suffixes: tuple[str, str] = DEFAULT_SUFFIXES,
     ):
         """
         Returns a :class:`Reconcile` object populated with data which can be queried.
